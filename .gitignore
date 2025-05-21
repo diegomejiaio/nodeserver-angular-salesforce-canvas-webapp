@@ -1,0 +1,13 @@
+.env
+node_modules
+package-lock.json
+yarn-error.log
+coverage
+dist
+.vscode
+.idea
+*.iml
+*.log
+*.tsbuildinfo
+*.tgz
+.DS_Store
