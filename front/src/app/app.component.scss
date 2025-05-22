@@ -1,0 +1,92 @@
+// Salesforce Lightning Design System component styles
+:host {
+    display: block;
+    padding: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+// Make pre tags with JSON more readable
+pre.slds-text-longform {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 12px;
+    background-color: #f3f3f3;
+    border-radius: 4px;
+}
+
+// Add some spacing to the section components
+.slds-section {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #d8dde6;
+    border-radius: 4px;
+}
+
+.slds-section__title {
+    background: #f3f3f3;
+    padding: 0.5rem;
+    font-weight: bold;
+    border-bottom: 1px solid #d8dde6;
+}
+
+// Toast container positioning
+.slds-notify_container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    width: auto;
+    max-width: 480px;
+    z-index: 10000;
+}
+
+// OAuth token display
+.oauth-token {
+    word-break: break-all;
+    background-color: rgba(0, 112, 210, 0.05);
+    border-radius: 4px;
+    padding: 0.5rem;
+    font-family: monospace;
+}
+
+// Spinner styling
+.slds-spinner {
+    position: relative;
+    width: 80px;
+    height: 80px;
+}
+
+.slds-spinner__dot-a,
+.slds-spinner__dot-b {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+}
+
+.slds-spinner__dot-a {
+    background-color: #0070d2;
+    animation: bounce 1.4s infinite ease-in-out;
+}
+
+.slds-spinner__dot-b {
+    background-color: #1589ee;
+    animation: bounce 1.4s infinite ease-in-out;
+    animation-delay: -0.7s;
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: scale(0);
+    }
+
+    50% {
+        transform: scale(1);
+    }
+}
