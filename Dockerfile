@@ -1,18 +1,26 @@
 # Build stage for Angular frontend
-FROM node:20-alpine AS build-front
+FROM node:20-bullseye AS build-front
 WORKDIR /front
+
+# Copy package files and install dependencies with legacy-peer-deps to handle version conflicts
 COPY front/package*.json ./
-RUN npm ci
+RUN npm config set legacy-peer-deps true && \
+    npm install
+
+# Copy Angular source
 COPY front/ ./
-RUN npm run build
+
+# Build the Angular app in production mode with increased memory
+RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build -- --configuration=production
 
 # Production stage
-FROM node:20-alpine
+FROM node:20-alpine AS production
 WORKDIR /app
 
-# Install dependencies
+# Install production dependencies for backend
 COPY back/package*.json ./
-RUN npm ci --only=production
+RUN npm config set legacy-peer-deps true && \
+    npm install --only=production
 
 # Copy backend application code
 COPY back/ ./
