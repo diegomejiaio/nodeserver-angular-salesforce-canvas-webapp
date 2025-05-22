@@ -18,6 +18,12 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.text({ type: "*/*" }));
 
+// Health check endpoint for Azure App Service
+app.get("/health", (req, res) => {
+  console.log("Health check called");
+  res.status(200).send("Service is healthy");
+});
+
 const angularDistPath = path.join(__dirname, "front/dist/front/browser");
 app.use(express.static(angularDistPath));
 
@@ -118,8 +124,8 @@ app.get(/.*/, function(req, res) {
   res.sendFile(path.join(angularDistPath, "index.html"));
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, function () {
+const port = process.env.PORT || 80;
+app.listen(port, "0.0.0.0", function () {
   console.log(`Server is listening on port ${port}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
   console.log(`Angular files serving from: ${angularDistPath}`);

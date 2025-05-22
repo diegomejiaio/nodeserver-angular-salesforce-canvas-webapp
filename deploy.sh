@@ -168,7 +168,17 @@ echo "13.1) 📝 Habilitando logging para el contenedor..."
 az webapp log config \
     --resource-group "$RG" \
     --name "$APP_NAME" \
-    --docker-container-logging filesystem
+    --docker-container-logging filesystem \
+    --web-server-logging filesystem
+
+# Configurar health check path para la Web App
+echo "13.2) 🏥 Configurando health check path..."
+az resource update \
+    --ids "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG/providers/Microsoft.Web/sites/$APP_NAME" \
+    --set properties.healthCheckPath="/health" \
+    --set properties.siteConfig.linuxFxVersion="DOCKER|$IMAGE_NAME" \
+    --set properties.siteConfig.healthCheckPath="/health" \
+    --api-version 2020-06-01
 
 # Reiniciar la Web App
 echo "14) 🔄 Reiniciando la Web App..."
@@ -181,3 +191,9 @@ echo "El despliegue tarda 40s aproximadamente en estar listo."
 sleep 40
 echo "Puedes ver los logs de la aplicación con el siguiente comando:"
 echo "az webapp log tail --name $APP_NAME --resource-group $RG"
+echo "Para ver los logs directamente ahora, ejecutar: 'y' o cualquier otra tecla para salir:"
+read -n 1 -r
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "Mostrando logs de la aplicación..."
+    az webapp log tail --name "$APP_NAME" --resource-group "$RG"
+fi

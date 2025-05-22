@@ -64,6 +64,7 @@
     <div class="slds-section__content">
       <div class="slds-m-around_medium">
         <div class="slds-badge slds-badge_warning slds-m-right_small">DEBUG MODE</div>
+        <button class="slds-button slds-button_brand" (click)="showTopToast = true">Show NGL Toast</button>
         <pre class="slds-box slds-theme_shade slds-m-top_small slds-text-longform">{{ envelope | json }}</pre>
       </div>
     </div>
@@ -88,19 +89,17 @@
 </div>
 
 <!-- Toast Notification -->
-<div *ngIf="showToast" class="slds-notify_container">
-  <div class="slds-notify slds-notify_toast slds-theme_success" role="status">
-    <span class="slds-assistive-text">Success</span>
-    <span class="slds-icon_container slds-icon-utility-success slds-m-right_small" title="Success">
-      <!-- Success icon would go here -->
-    </span>
-    <div class="slds-notify__content">
-      <h2 class="slds-text-heading_small">Connected to Salesforce</h2>
-      <p>Successfully loaded Salesforce Canvas data.</p>
-    </div>
-    <button class="slds-button slds-button_icon slds-notify__close slds-button_icon-inverse" title="Close"
-      (click)="closeToast()">
-      <span class="slds-assistive-text">Close</span>
-    </button>
-  </div>
+<!-- Toast Notification -->
+<!-- Toast Notification -->
+<div class="slds-notify_container">
+  <ngl-toast 
+    *ngIf="showTopToast" 
+    variant="error"
+    iconName="error"
+    assistiveText="Error" 
+    closeButtonAssistiveText="Close"
+    (close)="onClose($event); showTopToast = false;" 
+    [duration]="5000">  <!-- Duration set to 5 seconds -->
+    <h2 class="slds-text-heading_small">This error will automatically hide after 5 seconds if you don't click on the close button</h2>
+  </ngl-toast>
 </div>

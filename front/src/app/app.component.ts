@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NglModule, NglIconsModule } from 'ng-lightning';
 
 /**
  * Main application component that handles Salesforce Canvas integration.
@@ -12,7 +13,7 @@ import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, NglModule, NglIconsModule],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
@@ -21,12 +22,24 @@ export class AppComponent implements OnInit {
   envelope: any = null;
   /** Controls the visibility of the success toast */
   showToast = false;
+  /** Controls the visibility of the top toast from ng-lightning */
+  showTopToast = false;
+
+  /**
+   * Handles the close event from the ngl-toast component
+   * @param reason The reason why the toast was closed
+   */
+  onClose(reason: string) {
+    console.log(`Closed by ${reason}`);
+  };
 
   ngOnInit() {
     // Check for globally injected Salesforce Canvas data
     if ((window as any).salesforceEnvelope) {
       this.envelope = (window as any).salesforceEnvelope;
       this.showToast = true;
+      // Also show the ng-lightning toast
+      this.showTopToast = true;
     } else {
       console.log('No Salesforce Canvas data found, loading test data');
       // Load test data for development
@@ -37,6 +50,8 @@ export class AppComponent implements OnInit {
       // Show toast after a delay to simulate loading
       setTimeout(() => {
         this.showToast = true;
+        // Also show the ng-lightning toast
+        this.showTopToast = true;
       }, 500);
       setTimeout(() => {
         this.showToast = false;

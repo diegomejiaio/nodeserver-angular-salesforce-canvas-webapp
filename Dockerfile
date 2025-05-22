@@ -25,6 +25,9 @@ RUN npm config set legacy-peer-deps true && \
 # Copy backend application code
 COPY back/ ./
 
+# Make startup script executable
+RUN chmod +x ./startup.sh
+
 # Create directory structure for Angular files
 RUN mkdir -p front/dist/front/browser
 
@@ -38,5 +41,5 @@ ENV NODE_ENV=production
 # Expose the port
 EXPOSE 80
 
-# Start the application
-CMD ["node", "app.js"]
+# Start the application with the startup script
+CMD ["./startup.sh"]
