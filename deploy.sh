@@ -157,7 +157,18 @@ az webapp config appsettings set \
         WEBSITES_PORT=80 \
         WEBSITES_CONTAINER_START_TIME_LIMIT=1800 \
         WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
+        DOCKER_REGISTRY_SERVER_URL="https://$ACR_NAME.azurecr.io" \
+        DOCKER_REGISTRY_SERVER_USERNAME="$ACR_USERNAME" \
+        DOCKER_REGISTRY_SERVER_PASSWORD="$ACR_PASSWORD" \
+        DOCKER_CUSTOM_IMAGE_NAME="$IMAGE_NAME" \
         CANVAS_CONSUMER_SECRET="$CANVAS_CONSUMER_SECRET"
+
+# Habilitar logging para el contenedor
+echo "13.1) 📝 Habilitando logging para el contenedor..."
+az webapp log config \
+    --resource-group "$RG" \
+    --name "$APP_NAME" \
+    --docker-container-logging filesystem
 
 # Reiniciar la Web App
 echo "14) 🔄 Reiniciando la Web App..."
