@@ -42,8 +42,8 @@ A full-stack application that demonstrates Salesforce Canvas integration using N
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
-   cd salesforcecanvas-angular-webapp
+   git clone https://github.com/diegomejiaio/nodeserver-angular-salesforce-canvas-webapp.git
+   cd nodeserver-angular-salesforce-canvas-webapp
    ```
 
 2. Set up environment variables:
@@ -111,14 +111,6 @@ The script will:
 - Deploy to Azure App Service
 - Configure environment variables
 
-## Salesforce Canvas Configuration
-
-1. In Salesforce Setup, navigate to `Build > Create > Connected Apps`
-2. Create a new Connected App
-3. Enable Canvas App Settings
-4. Set Canvas App URL to your deployed application URL
-5. Generate and save the Consumer Secret
-6. Configure Canvas app locations in Salesforce
 
 ## Environment Variables
 
@@ -126,7 +118,7 @@ Required environment variables in `.env`:
 
 - `CANVAS_CONSUMER_SECRET`: Salesforce Canvas consumer secret
 - `PORT`: Server port (defaults: 3000 for development, 80 for production)
-- `NODE_ENV`: Environment setting (development/production)
+
 
 ## Security
 
