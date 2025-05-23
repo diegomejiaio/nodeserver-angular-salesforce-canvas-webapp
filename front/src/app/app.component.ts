@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { NglModule, NglIconsModule } from 'ng-lightning';
 
 /**
@@ -13,7 +14,7 @@ import { NglModule, NglIconsModule } from 'ng-lightning';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, NglModule, NglIconsModule],
+  imports: [CommonModule, FormsModule, NglModule, NglIconsModule],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
@@ -24,6 +25,12 @@ export class AppComponent implements OnInit {
   showToast = false;
   /** Controls the visibility of the top toast from ng-lightning */
   showTopToast = false;
+  /** API endpoint for testing */
+  apiEndpoint = '/services/data/v52.0/sobjects/Opportunity/';
+  /** API response */
+  apiResponse: any = null;
+  /** Loading state for API call */
+  isLoading = false;
 
   /**
    * Handles the close event from the ngl-toast component
@@ -65,5 +72,43 @@ export class AppComponent implements OnInit {
    */
   closeToast() {
     this.showToast = false;
+  }
+
+  /**
+   * Makes an API call to the Salesforce REST API
+   */
+  async testApiCall() {
+    if (!this.envelope?.client?.oauthToken || !this.envelope?.client?.targetOrigin) {
+      alert('No OAuth token or target origin available');
+      return;
+    }
+
+    this.isLoading = true;
+    this.apiResponse = null;
+
+    try {
+      const url = `${this.envelope.client.targetOrigin}${this.apiEndpoint}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.envelope.client.oauthToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      this.apiResponse = {
+        status: response.status,
+        statusText: response.statusText,
+        data: data
+      };
+    } catch (error) {
+      this.apiResponse = {
+        error: error,
+        message: 'Failed to make API call'
+      };
+    } finally {
+      this.isLoading = false;
+    }
   }
 }

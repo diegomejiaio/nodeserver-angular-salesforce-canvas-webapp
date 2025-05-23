@@ -56,6 +56,54 @@
     </div>
   </div>
 
+  <!-- API Call Tester Section -->
+  <div class="slds-section slds-is-open">
+    <h3 class="slds-section__title slds-theme_shade">
+      <span class="slds-truncate slds-p-horizontal_small" title="API Call Tester">API Call Tester</span>
+    </h3>
+    <div class="slds-section__content">
+      <div class="slds-m-around_medium">
+        <div class="slds-grid slds-gutters">
+          <div class="slds-col slds-size_1-of-1">
+            <div class="slds-form-element">
+              <label class="slds-form-element__label" for="api-endpoint">API Endpoint</label>
+              <div class="slds-form-element__control">
+                <input type="text" id="api-endpoint" [(ngModel)]="apiEndpoint" 
+                       class="slds-input" 
+                       placeholder="/services/data/v52.0/sobjects/Opportunity/" />
+              </div>
+            </div>
+            
+            <div class="slds-m-top_medium">
+              <button class="slds-button slds-button_brand" 
+                      (click)="testApiCall()" 
+                      [disabled]="isLoading || !envelope?.client?.oauthToken">
+                <span *ngIf="isLoading" class="slds-spinner slds-spinner_x-small slds-spinner_inline">
+                  <div class="slds-spinner__dot-a"></div>
+                  <div class="slds-spinner__dot-b"></div>
+                </span>
+                {{ isLoading ? 'Making API Call...' : 'Test API Call' }}
+              </button>
+            </div>
+
+            <div *ngIf="apiResponse" class="slds-m-top_medium">
+              <h4 class="slds-text-heading_small slds-m-bottom_small">API Response</h4>
+              <div class="slds-box slds-theme_shade">
+                <div *ngIf="apiResponse.status" class="slds-m-bottom_small">
+                  <span class="slds-badge" 
+                        [ngClass]="apiResponse.status >= 200 && apiResponse.status < 300 ? 'slds-badge_success' : 'slds-badge_error'">
+                    {{ apiResponse.status }} {{ apiResponse.statusText }}
+                  </span>
+                </div>
+                <pre class="slds-text-longform">{{ apiResponse | json }}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Debug Information Section -->
   <div class="slds-section slds-is-open">
     <h3 class="slds-section__title slds-theme_shade">
@@ -88,18 +136,3 @@
   </div>
 </div>
 
-<!-- Toast Notification -->
-<!-- Toast Notification -->
-<!-- Toast Notification -->
-<div class="slds-notify_container">
-  <ngl-toast 
-    *ngIf="showTopToast" 
-    variant="error"
-    iconName="error"
-    assistiveText="Error" 
-    closeButtonAssistiveText="Close"
-    (close)="onClose($event); showTopToast = false;" 
-    [duration]="5000">  <!-- Duration set to 5 seconds -->
-    <h2 class="slds-text-heading_small">This error will automatically hide after 5 seconds if you don't click on the close button</h2>
-  </ngl-toast>
-</div>

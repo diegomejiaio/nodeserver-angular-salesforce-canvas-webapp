@@ -29,6 +29,25 @@ A full-stack application that demonstrates Salesforce Canvas integration using N
 └── README.md       # Documentation
 ```
 
+## Sequence Flow
+
+```mermaid
+sequenceDiagram
+    participant SF as Salesforce
+    participant Node as Node.js Server
+    participant Angular as Angular App
+    participant User as User
+
+    SF->>Node: 1. POST / with signed_request
+    Note over Node: 2. Validates HMAC signature
+    Node->>Node: 3. Decodes base64 envelope
+    Node->>Angular: 4. Injects envelope as window.salesforceEnvelope
+    Angular->>Angular: 5. Initializes with envelope data
+    Angular->>User: 6. Displays user context & organization info
+    User->>Angular: 7. Interacts with UI
+    Angular->>SF: 8. Displays within Salesforce Canvas iframe
+```
+
 ## Prerequisites
 
 - Node.js >= 18.x
