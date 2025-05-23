@@ -1,7 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { NglModule, NglIconsModule } from 'ng-lightning';
+import { 
+  NglModule, 
+  NglIconsModule,
+  NglButtonsModule,
+} from 'ng-lightning';
 
 /**
  * Main application component that handles Salesforce Canvas integration.
@@ -14,7 +18,7 @@ import { NglModule, NglIconsModule } from 'ng-lightning';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, NglModule, NglIconsModule],
+  imports: [CommonModule, FormsModule, NglModule, NglIconsModule, NglButtonsModule],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
@@ -31,6 +35,8 @@ export class AppComponent implements OnInit {
   apiResponse: any = null;
   /** Loading state for API call */
   isLoading = false;
+  /** Input validation error message */
+  inputError: string | null = null;
 
   /**
    * Handles the close event from the ngl-toast component

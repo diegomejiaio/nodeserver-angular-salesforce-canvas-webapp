@@ -8,6 +8,7 @@
     margin: 0 auto;
     height: 100%;
     overflow-y: auto;
+    font-family: 'Salesforce Sans', Arial, sans-serif;
 }
 
 // // Make pre tags with JSON more readable
@@ -66,4 +67,20 @@ pre.slds-text-longform {
     50% {
         transform: scale(1);
     }
+}
+
+// Estilos personalizados para los botones
+[nglButton] {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+// Asegura que el spinner está correctamente posicionado dentro del botón
+.slds-spinner_container.slds-is-relative {
+    margin-left: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
 }
