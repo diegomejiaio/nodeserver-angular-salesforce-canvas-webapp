@@ -1,11 +1,11 @@
 <!-- Salesforce Canvas Integration with SLDS styling -->
 <div *ngIf="envelope" class="slds-scope">
-  <header class="slds-page-header slds-m-bottom_medium">
+  <header class="slds-page-header slds-m-bottom_small">
     <div class="slds-page-header__row">
       <div class="slds-page-header__col-title">
         <div class="slds-media">
           <div class="slds-media__figure">
-            <span class="slds-icon_container slds-icon-standard-canvas">
+            <span class="slds-icon_container slds-icon-standard-apps">
               <svg class="slds-icon slds-icon_medium" aria-hidden="true">
                 <use xlink:href="/assets/icons/standard-sprite/svg/symbols.svg#connected_apps"></use>
               </svg>
@@ -15,7 +15,9 @@
             <div class="slds-page-header__name">
               <div class="slds-page-header__name-title">
                 <h1>
-                  <span class="slds-badge slds-badge_success slds-m-right_small">CONNECTED</span>
+                  <span class="slds-badge slds-badge_lightest slds-m-right_small" style="background-color: #c6fed7;">
+                    CONNECTED
+                  </span>
                   <span class="slds-page-header__title slds-truncate" title="Salesforce Canvas Integration">
                     Salesforce Canvas Integration - Angular App
                   </span>
@@ -34,7 +36,7 @@
       <span class="slds-truncate slds-p-horizontal_small" title="User Information">User Information</span>
     </h3>
     <div class="slds-section__content">
-      <div class="slds-grid slds-gutters slds-p-around_medium">
+      <div class="slds-grid slds-gutters slds-p-horizontal_medium slds-p-vertical_small">
         <div class="slds-col slds-size_1-of-2">
           <ul class="slds-list_dotted">
             <li><strong>User ID:</strong> {{ envelope.context.user.userId }}</li>
@@ -45,7 +47,7 @@
           </ul>
         </div>
         <div class="slds-col slds-size_1-of-2">
-          <div class="slds-box slds-theme_shade">
+          <div class="slds-box slds-theme_default">
             <h3 class="slds-text-heading_small slds-m-bottom_small">Organization Details</h3>
             <ul class="slds-list_dotted">
               <li><strong>Org ID:</strong> {{ envelope.context.organization.organizationId }}</li>
@@ -66,27 +68,21 @@
       <span class="slds-truncate slds-p-horizontal_small" title="OAuth Information">OAuth Information</span>
     </h3>
     <div class="slds-section__content">
-      <div class="slds-m-around_medium">
-        <div class="slds-card">
-          <div class="slds-card__header slds-grid">
-            <header class="slds-media slds-media_center slds-has-flexi-truncate">
-              <div class="slds-media__figure">
-                <span class="slds-icon_container slds-icon-standard-connected-apps">
-                  <svg class="slds-icon slds-icon_small" aria-hidden="true">
-                    <use xlink:href="/assets/icons/standard-sprite/svg/symbols.svg#connected_apps"></use>
-                  </svg>
-                </span>
-              </div>
-              <div class="slds-media__body">
-                <h2 class="slds-card__header-title">OAuth Token Information</h2>
-              </div>
-            </header>
+      <div class="slds-p-horizontal_medium slds-p-vertical_x-small">
+        <div class="slds-media slds-media_center slds-has-flexi-truncate">
+          <div class="slds-media__figure">
+            <span class="slds-icon_container slds-icon-standard-connected-apps">
+              <svg class="slds-icon slds-icon_small" aria-hidden="true">
+                <use xlink:href="/assets/icons/standard-sprite/svg/symbols.svg#connected_apps"></use>
+              </svg>
+            </span>
           </div>
-          <div class="slds-card__body slds-card__body_inner">
-            <div class="slds-box slds-theme_shade slds-text-longform oauth-token">
-              {{ envelope.client.oauthToken }}
-            </div>
+          <div class="slds-media__body">
+            <h2 class="slds-text-heading_small">OAuth Token Information</h2>
           </div>
+        </div>
+        <div class="slds-box slds-theme_default slds-m-top_small slds-text-longform oauth-token">
+          {{ envelope.client.oauthToken }}
         </div>
       </div>
     </div>
@@ -98,68 +94,68 @@
       <span class="slds-truncate slds-p-horizontal_small" title="API Call Tester">API Call Tester</span>
     </h3>
     <div class="slds-section__content">
-      <div class="slds-m-around_medium">
-        <div class="slds-form slds-form_stacked">
-          <div class="slds-form-element">
-            <label class="slds-form-element__label" for="api-endpoint">API Endpoint</label>
-            <div class="slds-form-element__control slds-input-has-icon slds-input-has-icon_left">
-              <input type="text" id="api-endpoint" [(ngModel)]="apiEndpoint" 
-                     class="slds-input slds-input_mask slds-p-left_x-large" 
-                     placeholder="{{apiEndpoint}}" />
-            </div>
-            <div class="slds-form-element__help">
-              Enter an API endpoint starting with /services/data/
-            </div>
+      <div class="slds-p-horizontal_medium slds-p-vertical_x-small">
+        <div class="slds-form-element">
+          <label class="slds-form-element__label" for="api-endpoint">API Endpoint</label>
+          <div class="slds-form-element__control">
+            <input type="text" id="api-endpoint" [(ngModel)]="apiEndpoint" class="slds-input" value="{{apiEndpoint}}" />
           </div>
-            
-          <div class="slds-form-element slds-m-top_medium">
-            <button nglButton type="button" variant="brand"
-                    (click)="testApiCall()" 
-                    [disabled]="isLoading || !envelope?.client?.oauthToken">
-              <span class="slds-truncate">{{ isLoading ? 'Making API Call...' : 'Test API Call' }}</span>
-            </button>
+          <div class="slds-form-element__help">
+            Enter an API endpoint starting with /services/data/
           </div>
+        </div>
 
-            <div *ngIf="apiResponse" class="slds-m-top_medium">
-              <h4 class="slds-text-heading_small slds-m-bottom_small">API Response</h4>
-              <div class="slds-box slds-theme_shade">
-                <div *ngIf="apiResponse.status" class="slds-m-bottom_small">
-                  <span class="slds-badge" 
-                        [ngClass]="apiResponse.status >= 200 && apiResponse.status < 300 ? 'slds-badge_success' : 'slds-badge_error'">
-                    {{ apiResponse.status }} {{ apiResponse.statusText }}
-                  </span>
-                </div>
-                <pre class="slds-text-longform">{{ apiResponse | json }}</pre>
-              </div>
+        <div class="slds-m-top_small">
+          <button nglButton type="button" variant="brand" (click)="testApiCall()"
+            [disabled]="isLoading || !envelope?.client?.oauthToken" class="slds-button slds-button_brand"
+            style="padding: 0 1rem; height: 32px; line-height: 30px; background-color: #0070d2; border: 1px solid #0070d2;">
+            <svg class="slds-button__icon slds-button__icon_left" aria-hidden="true">
+              <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#right"></use>
+            </svg>
+            <span class="slds-truncate">{{ isLoading ? 'Making API Call...' : 'Test API Call' }}</span>
+          </button>
+        </div>
+
+        <div *ngIf="apiResponse" class="slds-m-top_medium">
+          <h4 class="slds-text-heading_small slds-m-bottom_small">API Response</h4>
+          <div class="slds-box slds-theme_shade">
+            <div *ngIf="apiResponse.status" class="slds-m-bottom_small">
+              <span class="slds-badge"
+                [ngClass]="apiResponse.status >= 200 && apiResponse.status < 300 ? 'slds-badge_success' : 'slds-badge_error'">
+                {{ apiResponse.status }} {{ apiResponse.statusText }}
+              </span>
             </div>
+            <pre class="slds-text-longform">{{ apiResponse | json }}</pre>
           </div>
         </div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Debug Information Section -->
-  <div class="slds-section slds-is-open">
-    <h3 class="slds-section__title slds-theme_shade">
-      <span class="slds-truncate slds-p-horizontal_small" title="Debug Information">Debug Information</span>
-    </h3>
-    <div class="slds-section__content">
-      <div class="slds-m-around_medium">
-        <div class="slds-grid slds-gutters slds-m-bottom_medium">
-          <div class="slds-col">
-            <div class="slds-badge slds-badge_warning slds-m-right_small">DEBUG MODE</div>
-          </div>
+
+<!-- Debug Information Section -->
+<div class="slds-section slds-is-open">
+  <h3 class="slds-section__title slds-theme_shade">
+    <span class="slds-truncate slds-p-horizontal_small" title="Debug Information">Debug Information</span>
+  </h3>
+  <div class="slds-section__content">
+    <div class="slds-m-around_medium">
+      <div class="slds-grid slds-gutters slds-m-bottom_medium">
+        <div class="slds-col">
+          <div class="slds-badge slds-badge_warning slds-m-right_small">DEBUG MODE</div>
         </div>
-        <div class="slds-box slds-theme_shade">
-          <div class="slds-grid slds-grid_align-spread slds-m-bottom_small">
-            <h3 class="slds-text-heading_small">Envelope JSON Data</h3>
-            <div class="slds-badge">Complete Payload</div>
-          </div>
-          <pre class="slds-text-longform">{{ envelope | json }}</pre>
+      </div>
+      <div class="slds-box slds-theme_shade">
+        <div class="slds-grid slds-grid_align-spread slds-m-bottom_small">
+          <h3 class="slds-text-heading_small">Envelope JSON Data</h3>
+          <div class="slds-badge">Complete Payload</div>
         </div>
+        <pre class="slds-text-longform">{{ envelope | json }}</pre>
       </div>
     </div>
   </div>
+</div>
 
 
 <!-- No Data Display -->
@@ -178,4 +174,3 @@
     </div>
   </div>
 </div>
-
