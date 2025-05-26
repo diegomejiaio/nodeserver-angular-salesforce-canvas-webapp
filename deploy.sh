@@ -17,10 +17,10 @@ if [ -z "$CANVAS_CONSUMER_SECRET" ]; then
 fi
 # Variables de configuración
 RG="fs-canvas-webapp-01"
-APP_NAME="sfcanvaswebapp003"
+APP_NAME="sfcanvaswebapp002"
 PLAN_NAME="sf-canvas-linux-plan"
 ACR_NAME="sfcanvaswebappcr"
-IMAGE_TAG="3.0"
+IMAGE_TAG="4.0"
 IMAGE_NAME="$ACR_NAME.azurecr.io/sf-canvas-webapp:$IMAGE_TAG"
 REGION="eastus2"
 

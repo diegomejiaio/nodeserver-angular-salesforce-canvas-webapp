@@ -84,6 +84,20 @@
         <div class="slds-box slds-theme_default slds-m-top_small slds-text-longform oauth-token">
           {{ envelope.client.oauthToken }}
         </div>
+        
+        <!-- Test Data Warning -->
+        <div *ngIf="isUsingTestData()" class="slds-scoped-notification slds-media slds-media_center slds-scoped-notification_light slds-m-top_small" role="status">
+          <div class="slds-media__figure">
+            <span class="slds-icon_container slds-icon-utility-warning" title="Warning">
+              <svg class="slds-icon slds-icon-text-warning slds-icon_x-small" aria-hidden="true">
+                <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#warning"></use>
+              </svg>
+            </span>
+          </div>
+          <div class="slds-media__body">
+            <p><strong>⚠️ Development Mode:</strong> You're using test data with a fake OAuth token. API calls to Salesforce will fail. Deploy as a Canvas app for real functionality.</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -91,7 +105,7 @@
   <!-- API Call Tester Section -->
   <div class="slds-section slds-is-open">
     <h3 class="slds-section__title slds-theme_shade">
-      <span class="slds-truncate slds-p-horizontal_small" title="API Call Tester">API Call Tester</span>
+      <span class="slds-truncate slds-p-horizontal_small" title="API Call Tester">Salesforce API Call Tester</span>
     </h3>
     <div class="slds-section__content">
       <div class="slds-p-horizontal_medium slds-p-vertical_x-small">
@@ -103,6 +117,47 @@
           <div class="slds-form-element__help">
             Enter an API endpoint starting with /services/data/
           </div>
+          <div *ngIf="inputError" class="slds-form-element__help slds-text-color_error">
+            {{ inputError }}
+          </div>
+        </div>
+
+        <!-- Salesforce Proxy Toggle -->
+        <div class="slds-form-element slds-m-top_small">
+          <div class="slds-form-element__control">
+            <div class="slds-checkbox_toggle slds-grid">
+              <span class="slds-form-element__label slds-m-bottom_none">
+                Use Server Proxy for Salesforce API
+              </span>
+              <input type="checkbox" name="salesforce-proxy" id="salesforce-proxy" 
+                     [(ngModel)]="useSalesforceProxy" 
+                     (change)="toggleSalesforceProxy()" />
+              <label class="slds-checkbox_toggle_label" for="salesforce-proxy">
+                <span class="slds-checkbox_faux"></span>
+                <span class="slds-checkbox_on">Enabled</span>
+                <span class="slds-checkbox_off">Disabled</span>
+              </label>
+            </div>
+          </div>
+          <div class="slds-form-element__help slds-p-bottom_x-small">
+            Enable to route Salesforce API calls through the server proxy to improve reliability and handle CORS issues
+          </div>
+          <div class="slds-grid slds-grid_vertical-align-center">
+            <div class="slds-col">
+              <span class="slds-badge" 
+                    [ngClass]="useSalesforceProxy ? 'slds-badge_success' : 'slds-badge_lightest'">
+                <span class="slds-icon_container slds-icon-utility-connected_apps slds-m-right_xx-small" title="Status">
+                  <svg class="slds-icon slds-icon_xx-small slds-icon-text-default" aria-hidden="true">
+                    <use [attr.xlink:href]="'/assets/icons/utility-sprite/svg/symbols.svg#' + (useSalesforceProxy ? 'connected_apps' : 'disconnect')"></use>
+                  </svg>
+                </span>
+                {{ useSalesforceProxy ? 'Server Proxy Enabled' : 'Direct Browser Call' }}
+              </span>
+            </div>
+            <div *ngIf="useSalesforceProxy" class="slds-col slds-text-align_right slds-text-color_success slds-text-body_small">
+              <span>✓ Improved reliability & CORS handling</span>
+            </div>
+          </div>
         </div>
 
         <div class="slds-m-top_small">
@@ -112,12 +167,60 @@
             <svg class="slds-button__icon slds-button__icon_left" aria-hidden="true">
               <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#right"></use>
             </svg>
-            <span class="slds-truncate">{{ isLoading ? 'Making API Call...' : 'Test API Call' }}</span>
+            <span class="slds-truncate">{{ isLoading ? 'Making API Call...' : 'Test Salesforce API' }}</span>
           </button>
-        </div>
-
-        <div *ngIf="apiResponse" class="slds-m-top_medium">
-          <h4 class="slds-text-heading_small slds-m-bottom_small">API Response</h4>
+        </div>          <div *ngIf="apiResponse" class="slds-m-top_medium">
+          <h4 class="slds-text-heading_small">Salesforce API Response</h4>
+          
+          <!-- Connection method indicator -->
+          <div class="slds-p-bottom_small slds-grid slds-grid_vertical-align-center">
+            <span class="slds-badge" 
+                  [ngClass]="apiResponse.proxyUsed ? 'slds-badge_success' : 'slds-badge_lightest'">
+              <span class="slds-icon_container slds-icon-utility-connected_apps slds-m-right_xx-small">
+                <svg class="slds-icon slds-icon_xx-small" [ngClass]="apiResponse.proxyUsed ? 'slds-icon-text-success' : 'slds-icon-text-default'" aria-hidden="true">
+                  <use [attr.xlink:href]="'/assets/icons/utility-sprite/svg/symbols.svg#' + (apiResponse.proxyUsed ? 'connected_apps' : 'disconnect')"></use>
+                </svg>
+              </span>
+              {{ apiResponse.proxyUsed ? 'Via Server Proxy' : 'Direct Browser Call' }}
+            </span>
+          </div>
+          
+          <!-- Session expired or API authentication issue dialog -->
+          <div *ngIf="apiResponse.data?.error === 'Salesforce session expired' || apiResponse.data?.error === 'Salesforce API authentication issue'" 
+               class="slds-box slds-m-bottom_small"
+               [ngClass]="apiResponse.data?.action === 'refresh_page' ? 'slds-theme_error' : 'slds-theme_warning'">
+            <div class="slds-grid slds-grid_vertical-align-center">
+              <div class="slds-col slds-size_1-of-12">
+                <span class="slds-icon_container" [ngClass]="apiResponse.data?.action === 'refresh_page' ? 'slds-icon-utility-warning' : 'slds-icon-utility-info'">
+                  <svg class="slds-icon slds-icon_small slds-icon-text-light" aria-hidden="true">
+                    <use [attr.xlink:href]="'/assets/icons/utility-sprite/svg/symbols.svg#' + (apiResponse.data?.action === 'refresh_page' ? 'warning' : 'info')"></use>
+                  </svg>
+                </span>
+              </div>
+              <div class="slds-col slds-size_11-of-12">
+                <h3 class="slds-text-heading_small">{{ apiResponse.data?.message }}</h3>
+                <p class="slds-m-top_x-small">{{ apiResponse.data?.actionMessage }}</p>
+                <div class="slds-m-top_small">
+                  <button *ngIf="apiResponse.data?.action === 'refresh_page'" 
+                          class="slds-button slds-button_neutral" 
+                          onclick="window.location.reload()">
+                    Refresh Page
+                  </button>
+                  <button *ngIf="apiResponse.data?.action === 'try_again'" 
+                          class="slds-button slds-button_brand" 
+                          (click)="testApiCall()">
+                    Try Again
+                  </button>
+                  <button *ngIf="!useSalesforceProxy" 
+                          class="slds-button slds-button_brand" 
+                          (click)="useSalesforceProxy = true; toggleSalesforceProxy(); testApiCall()">
+                    Try with Server Proxy
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <div class="slds-box slds-theme_shade">
             <div *ngIf="apiResponse.status" class="slds-m-bottom_small">
               <span class="slds-badge"
@@ -131,7 +234,180 @@
       </div>
     </div>
   </div>
-</div>
+
+  <!-- APIM API Call Tester Section -->
+  <div class="slds-section slds-is-open">
+    <h3 class="slds-section__title slds-theme_shade">
+      <span class="slds-truncate slds-p-horizontal_small" title="APIM API Call Tester">APIM API Call Tester</span>
+    </h3>
+    <div class="slds-section__content">
+      <div class="slds-p-horizontal_medium slds-p-vertical_x-small">
+        
+        <!-- APIM Host Configuration -->
+        <div class="slds-form-element slds-m-bottom_small">
+          <label class="slds-form-element__label" for="apim-host">APIM Host</label>
+          <div class="slds-form-element__control">
+            <input type="text" id="apim-host" [(ngModel)]="apimHost" class="slds-input" />
+          </div>
+        </div>
+
+        <!-- APIM Endpoint -->
+        <div class="slds-form-element slds-m-bottom_small">
+          <label class="slds-form-element__label" for="apim-endpoint">APIM Endpoint</label>
+          <div class="slds-form-element__control">
+            <input type="text" id="apim-endpoint" [(ngModel)]="apimEndpoint" class="slds-input" />
+          </div>
+          <div class="slds-form-element__help">
+            Enter an APIM endpoint (e.g., /test/ping)
+          </div>
+          <div *ngIf="apimInputError" class="slds-form-element__help slds-text-color_error">
+            {{ apimInputError }}
+          </div>
+        </div>
+
+        <!-- APIM Subscription Key -->
+        <div class="slds-form-element slds-m-bottom_small">
+          <label class="slds-form-element__label" for="apim-key">APIM Subscription Key</label>
+          <div class="slds-form-element__control">
+            <input type="text" id="apim-key" [(ngModel)]="apimSubscriptionKey" class="slds-input" />
+          </div>
+        </div>
+
+        <!-- Server Proxy Toggle -->
+        <div class="slds-form-element slds-m-bottom_small">
+          <div class="slds-form-element__control">
+            <div class="slds-checkbox_toggle slds-grid">
+              <span class="slds-form-element__label slds-m-bottom_none">
+                Use Server Proxy for APIM Calls
+              </span>
+              <input type="checkbox" name="server-proxy" id="server-proxy" 
+                     [(ngModel)]="useServerProxy" 
+                     (change)="toggleServerProxy()" />
+              <label class="slds-checkbox_toggle_label" for="server-proxy">
+                <span class="slds-checkbox_faux"></span>
+                <span class="slds-checkbox_on">Enabled</span>
+                <span class="slds-checkbox_off">Disabled</span>
+              </label>
+            </div>
+          </div>
+          <div class="slds-form-element__help slds-p-bottom_x-small">
+            Use server-side proxy to avoid CORS issues with direct browser-to-APIM calls
+          </div>
+          <div class="slds-grid slds-grid_vertical-align-center">
+            <div class="slds-col">
+              <span class="slds-badge" 
+                    [ngClass]="useServerProxy ? 'slds-badge_success' : 'slds-badge_lightest'">
+                <span class="slds-icon_container slds-icon-utility-connected_apps slds-m-right_xx-small" title="Status">
+                  <svg class="slds-icon slds-icon_xx-small slds-icon-text-default" aria-hidden="true">
+                    <use [attr.xlink:href]="'/assets/icons/utility-sprite/svg/symbols.svg#' + (useServerProxy ? 'connected_apps' : 'disconnect')"></use>
+                  </svg>
+                </span>
+                {{ useServerProxy ? 'Server Proxy Enabled' : 'Direct Browser Call' }}
+              </span>
+            </div>
+            <div *ngIf="useServerProxy" class="slds-col slds-text-align_right slds-text-color_success slds-text-body_small">
+              <span>✓ CORS issues handled by server proxy</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- HTTP Method Selection -->
+        <div class="slds-form-element slds-m-bottom_small">
+          <label class="slds-form-element__label" for="apim-method">HTTP Method</label>
+          <div class="slds-form-element__control">
+            <div class="slds-select_container">
+              <select id="apim-method" [(ngModel)]="apimHttpMethod" class="slds-select">
+                <option *ngFor="let method of apimHttpMethods" [value]="method">{{ method }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="slds-form-element__help">
+            Select the HTTP method to use for the API call
+          </div>
+        </div>
+
+        <div class="slds-m-top_small">
+          <button nglButton type="button" variant="brand" (click)="testApimCall()"
+            [disabled]="isApimLoading || !envelope?.client?.oauthToken" class="slds-button slds-button_brand"
+            style="padding: 0 1rem; height: 32px; line-height: 30px; background-color: #16325c; border: 1px solid #16325c;">
+            <svg class="slds-button__icon slds-button__icon_left" aria-hidden="true">
+              <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#connected_apps"></use>
+            </svg>
+            <span class="slds-truncate">{{ isApimLoading ? 'Making APIM Call...' : 'Test APIM API' }}</span>
+          </button>
+        </div>
+
+        <div *ngIf="apimResponse" class="slds-m-top_medium">
+          <h4 class="slds-text-heading_small slds-m-bottom_small">APIM API Response</h4>
+          <div class="slds-box slds-theme_shade">
+            <div *ngIf="apimResponse.status" class="slds-m-bottom_small">
+              <span class="slds-badge"
+                [ngClass]="apimResponse.status >= 200 && apimResponse.status < 300 ? 'slds-badge_success' : 'slds-badge_error'">
+                {{ apimResponse.status }} {{ apimResponse.statusText }}
+              </span>
+            </div>
+            <pre class="slds-text-longform">{{ apimResponse | json }}</pre>
+            
+            <!-- CORS Debug Information -->
+            <div *ngIf="apimResponse.status === 'Request sent'" class="slds-m-top_medium slds-p-around_medium slds-theme_info">
+              <h4 class="slds-text-heading_small slds-m-bottom_small">
+                <svg class="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small" aria-hidden="true">
+                  <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#info"></use>
+                </svg>
+                CORS Information
+              </h4>
+              <p class="slds-m-bottom_small">
+                The API call was sent but due to CORS restrictions, we cannot read the response details.
+                This is expected behavior when using <code>mode: 'no-cors'</code>.
+              </p>
+              <p class="slds-m-bottom_small">
+                <strong>What's happening:</strong> Your browser is sending the request successfully, but because of the 
+                Same-Origin Policy, it blocks JavaScript from reading the response unless the server explicitly allows it
+                via CORS headers.
+              </p>
+              <h5 class="slds-text-title slds-m-top_small">Troubleshooting Options:</h5>
+              <ul class="slds-list_dotted slds-m-top_x-small">
+                <li>Check Network tab in DevTools to see actual HTTP status codes</li>
+                <li>Configure your APIM to allow CORS with proper headers</li>
+                <li>Set up a server-side proxy on your Node.js server to make the call</li>
+              </ul>
+            </div>
+        </div>
+        
+        <!-- Advanced Debugging Section -->
+        <div *ngIf="apimResponse && apimResponse.status === 'Request sent'" class="slds-m-top_medium">
+          <div class="slds-box slds-theme_shade slds-p-around_medium">
+            <h4 class="slds-text-heading_small slds-m-bottom_small">APIM Debug Actions</h4>
+            
+            <div class="slds-grid slds-gutters">
+              <div class="slds-col">
+                <button nglButton type="button" variant="neutral" (click)="openCorsDebugInfo()"
+                  class="slds-button slds-button_neutral">
+                  <svg class="slds-button__icon slds-button__icon_left" aria-hidden="true">
+                    <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#info"></use>
+                  </svg>
+                  <span class="slds-truncate">CORS Troubleshooting</span>
+                </button>
+              </div>
+              
+              <div class="slds-col">
+                <button nglButton type="button" variant="neutral" (click)="switchToServerProxy()"
+                  class="slds-button slds-button_neutral">
+                  <svg class="slds-button__icon slds-button__icon_left" aria-hidden="true">
+                    <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#refresh"></use>
+                  </svg>
+                  <span class="slds-truncate">Try with Server Proxy</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
 
 <!-- Debug Information Section -->
@@ -145,7 +421,42 @@
         <div class="slds-col">
           <div class="slds-badge slds-badge_warning slds-m-right_small">DEBUG MODE</div>
         </div>
+        <div class="slds-col slds-text-align_right">
+          <button nglButton type="button" variant="neutral" (click)="logDiagnosticReport()"
+            class="slds-button slds-button_neutral">
+            <svg class="slds-button__icon slds-button__icon_left" aria-hidden="true">
+              <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#filter"></use>
+            </svg>
+            <span class="slds-truncate">Generate Diagnostic Report</span>
+          </button>
+        </div>
       </div>
+      
+      <!-- APIM Diagnostics Section -->
+      <div class="slds-box slds-theme_shade slds-m-bottom_medium">
+        <div class="slds-grid slds-grid_align-spread slds-m-bottom_small">
+          <h3 class="slds-text-heading_small">APIM Diagnostic Information</h3>
+          <div class="slds-badge">Configuration</div>
+        </div>
+        <div class="slds-grid slds-gutters">
+          <div class="slds-col">
+            <ul class="slds-list_dotted">
+              <li><strong>APIM Host:</strong> {{ apimHost }}</li>
+              <li><strong>Endpoint:</strong> {{ apimEndpoint }}</li>
+              <li><strong>HTTP Method:</strong> {{ apimHttpMethod }}</li>
+              <li><strong>Using Server Proxy:</strong> {{ useServerProxy ? 'Yes' : 'No' }}</li>
+            </ul>
+          </div>
+          <div class="slds-col">
+            <ul class="slds-list_dotted">
+              <li><strong>Target Origin:</strong> {{ targetOrigin }}</li>
+              <li><strong>Has OAuth Token:</strong> {{ envelope?.client?.oauthToken ? 'Yes' : 'No' }}</li>
+              <li><strong>Browser:</strong> {{ getUserAgent() }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
       <div class="slds-box slds-theme_shade">
         <div class="slds-grid slds-grid_align-spread slds-m-bottom_small">
           <h3 class="slds-text-heading_small">Envelope JSON Data</h3>

@@ -1,10 +1,25 @@
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const msal = require("@azure/msal-node");
+const axios = require("axios");
 
 const app = express();
+
+// Configuración de MSAL para autenticación de Azure AD
+const msalConfig = {
+  auth: {
+    clientId: process.env.AZURE_CLIENT_ID,
+    authority: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}`,
+    clientSecret: process.env.AZURE_CLIENT_SECRET,
+  },
+};
 
 const consumerSecretApp = process.env.CANVAS_CONSUMER_SECRET;
 if (!consumerSecretApp) {
@@ -24,11 +39,13 @@ app.get("/health", (req, res) => {
   res.status(200).send("Service is healthy");
 });
 
-const angularDistPath = path.join(__dirname, "front/dist/front/browser");
+const angularDistPath = process.env.NODE_ENV === 'development' 
+  ? path.join(__dirname, "../front/dist/front/browser")  // Use relative path to front/dist for development
+  : path.join(__dirname, "front/dist/front/browser");    // Use path as in Docker for production
 app.use(express.static(angularDistPath));
 
 // POST /: recibe el signed_request Canvas
-app.post("/", function (req, res) {
+app.post("/", async function (req, res) {
   try {
     let signedRequest;
     // Logging incoming body and headers for debug
@@ -89,6 +106,19 @@ app.post("/", function (req, res) {
       const envelope = JSON.parse(Buffer.from(encoded_envelope, "base64").toString("utf8"));
       console.log("Envelope decodificado:", envelope);
 
+      // Obtener token de Azure AD y agregarlo al envelope
+      try {
+        const pca = new msal.ConfidentialClientApplication(msalConfig);
+        const response = await pca.acquireTokenByClientCredential({
+          scopes: [`api://${process.env.AZURE_CLIENT_ID}/.default`],
+        });
+        envelope.token_azure = response.accessToken;
+        console.log("Token Azure agregado al envelope");
+      } catch (error) {
+        console.error("Error obteniendo token Azure:", error);
+        envelope.token_azure = null;
+      }
+
       const indexPath = path.join(angularDistPath, "index.html");
       fs.readFile(indexPath, "utf8", (err, html) => {
         if (err) {
@@ -119,12 +149,180 @@ app.post("/", function (req, res) {
   }
 });
 
+// API Proxy endpoint for APIM calls to avoid CORS issues
+app.post("/api/proxy", async (req, res) => {
+  try {
+    const { apimHost, apimEndpoint, method, subscriptionKey, token } = req.body;
+    
+    if (!apimHost || !apimEndpoint || !method || !subscriptionKey || !token) {
+      return res.status(400).json({ 
+        error: "Missing required parameters", 
+        message: "All parameters (apimHost, apimEndpoint, method, subscriptionKey, token) are required" 
+      });
+    }
+    
+    // Normalize the token by trimming any whitespace
+    const normalizedToken = token.trim();
+    
+    console.log(`Proxying ${method} request to ${apimHost}${apimEndpoint}`);
+    console.log(`Token length: ${normalizedToken.length}, starts with: ${normalizedToken.substring(0, 5)}...`);
+    
+    // Build the URL and headers for the APIM request
+    const url = `https://${apimHost}${apimEndpoint}`;
+    const headers = {
+      'Ocp-Apim-Subscription-Key': subscriptionKey,
+      'Authorization': `Bearer ${normalizedToken}`,
+      'Accept': '*/*',
+      'Content-Type': 'application/json'
+    };
+    
+    // Make the request to APIM
+    const response = await axios({
+      method: method.toLowerCase(),
+      url: url,
+      headers: headers,
+      validateStatus: () => true // Don't throw on any status code
+    });
+    
+    // Log the response status
+    console.log(`APIM response status: ${response.status}`);
+    
+    // Send back the APIM response
+    return res.status(response.status).json({
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      data: response.data
+    });
+  } catch (error) {
+    console.error("Error in proxy request:", error);
+    return res.status(500).json({
+      error: "Proxy server error",
+      message: error.message || "Unknown error in proxy"
+    });
+  }
+});
+
+// Salesforce API Proxy endpoint to improve reliability and handle CORS issues
+app.post("/api/salesforce-proxy", async (req, res) => {
+  try {
+    const { url, method, token, headers: additionalHeaders, data: requestData } = req.body;
+    
+    if (!url || !method || !token) {
+      return res.status(400).json({ 
+        error: "Missing required parameters", 
+        message: "All parameters (url, method, token) are required" 
+      });
+    }
+    
+    // Normalize the token by trimming any whitespace
+    const normalizedToken = token.trim();
+    
+    // Verify token looks like a real Salesforce OAuth token (starts with 00D)
+    // Real Salesforce tokens typically start with "00D" followed by alphanumeric chars
+    const isLikelyValidToken = normalizedToken.startsWith('00D') && normalizedToken.length >= 15;
+    console.log(`Token appears to be ${isLikelyValidToken ? 'a valid' : 'an INVALID'} Salesforce OAuth token`);
+    
+    console.log(`Proxying ${method} request to Salesforce: ${url}`);
+    console.log(`Token length: ${normalizedToken.length}, starts with: ${normalizedToken.substring(0, 5)}...`);
+    
+    // Build the headers for the Salesforce request
+    const headers = {
+      'Authorization': `Bearer ${normalizedToken}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      // Don't set Origin automatically, let it come from additionalHeaders if needed
+      ...additionalHeaders // Allow additional headers to be passed
+    };
+    
+    // Remove null/undefined values from headers
+    Object.keys(headers).forEach(key => {
+      if (headers[key] === null || headers[key] === undefined) {
+        delete headers[key];
+      }
+    });
+    
+    console.log('Request headers:', JSON.stringify(headers, null, 2));
+    
+    // Make the request to Salesforce
+    const response = await axios({
+      method: method.toLowerCase(),
+      url: url,
+      headers: headers,
+      data: requestData, // Include request body if provided
+      validateStatus: () => true // Don't throw on any status code
+    });
+    
+    // Log the response status and some response details
+    console.log(`Salesforce response status: ${response.status}`);
+    if (response.status === 401) {
+      console.log('401 Unauthorized response from Salesforce');
+      console.log('Response data:', JSON.stringify(response.data, null, 2));
+      
+      // More robust detection of Salesforce's "Session expired or invalid" error pattern
+      const hasInvalidSessionError = 
+        // Format 1: Array of error objects
+        (Array.isArray(response.data) && response.data.some(err => err.errorCode === 'INVALID_SESSION_ID')) ||
+        // Format 2: Array in data property
+        (Array.isArray(response.data?.data) && response.data.data.some(err => err.errorCode === 'INVALID_SESSION_ID')) || 
+        // Format 3: Direct error property
+        response.data?.error === 'INVALID_SESSION_ID' ||
+        // Format 4: First element has errorCode
+        response.data?.[0]?.errorCode === 'INVALID_SESSION_ID' ||
+        // Format 5: Text match for the common message
+        JSON.stringify(response.data).includes('Session expired or invalid');
+      
+      if (hasInvalidSessionError) {
+        console.log('Invalid session detected. Providing detailed error response');
+        
+        // Send back the raw response for better debugging
+        return res.status(200).json({
+          status: 401,
+          statusText: "Unauthorized - But Response Forwarded",
+          message: "Salesforce reports 'Session expired or invalid', but we're returning 200 to allow client-side handling",
+          originalError: response.data,
+          headers: response.headers,
+          data: response.data
+        });
+      }
+    }
+    
+    // Handle successful responses correctly
+    if (response.status >= 200 && response.status < 300) {
+      console.log('Successful Salesforce response');
+      
+      // For successful responses, return the data directly with status 200
+      return res.status(200).json({
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data
+      });
+    }
+    
+    // For error responses other than authentication issues we already handled
+    return res.status(response.status).json({
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      data: response.data
+    });
+  } catch (error) {
+    console.error("Error in Salesforce proxy request:", error);
+    return res.status(500).json({
+      error: "Salesforce proxy server error",
+      message: error.message || "Unknown error in Salesforce proxy"
+    });
+  }
+});
+
 // Fallback seguro para SPA (Express 5.x): expresión regular
 app.get(/.*/, function(req, res) {
   res.sendFile(path.join(angularDistPath, "index.html"));
+  console.log(`SPA route fallback: ${req.url} -> index.html`);
 });
 
-const port = process.env.PORT || 80;
+const port = process.env.PORT || 3000;
 app.listen(port, "0.0.0.0", function () {
   console.log(`Server is listening on port ${port}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);

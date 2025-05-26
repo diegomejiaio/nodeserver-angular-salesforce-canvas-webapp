@@ -71,34 +71,63 @@ sequenceDiagram
    # Edit .env with your actual values
    ```
 
-3. Install backend dependencies:
+3. Install dependencies:
    ```bash
+   # Backend dependencies
    cd back
    npm install
-   ```
-
-4. Install frontend dependencies:
-   ```bash
+   
+   # Frontend dependencies
    cd ../front
    npm install
    ```
 
-## Development Environment
+4. Run the application using the helper script:
+   ```bash
+   # From project root
+   ./localrun.sh
+   # Choose 'l' for local development mode
+   ```
 
-### Running the Backend
+## Development Options
+
+### Option 1: Simplified Local Development
+
+This method runs both backend and frontend from a single command:
+
 ```bash
+# From project root
+./localrun.sh
+# Choose 'l' for local development
+```
+
+The application will be available at http://localhost:3000
+
+### Option 2: Docker Container (Production-like)
+
+To run the application in a Docker container (simulating production):
+
+```bash
+# From project root
+./localrun.sh
+# Choose 'd' for Docker mode
+```
+
+The application will be available at http://localhost:3000
+
+### Option 3: Separate Frontend and Backend (Advanced Development)
+
+Run backend and frontend separately for more granular control:
+
+```bash
+# Backend
 cd back
-npm run dev
-```
+npm run dev  # Runs on port 3000
 
-### Running the Frontend
-```bash
+# Frontend (in another terminal)
 cd front
-ng serve
+ng serve     # Runs on port 4200
 ```
-
-The application will be available at:
-- Frontend: http://localhost:4200
 - Backend: http://localhost:3000
 
 ## Docker Deployment
@@ -160,3 +189,54 @@ MIT
 ## Support
 
 For issues and feature requests, please use the GitHub issue tracker.
+
+## Azure API Management (APIM) Integration
+
+The application includes functionality to interact with Azure API Management (APIM) endpoints using the authenticated Salesforce user's bearer token. 
+
+### APIM Features
+
+- Make authenticated API calls to Azure API Management endpoints
+- Uses the Salesforce OAuth token for authentication
+- Configurable APIM host, endpoint, and subscription key
+- Support for multiple HTTP methods (GET, POST, PUT, DELETE, etc.)
+- Server-side proxy option to avoid CORS issues
+
+### CORS Handling
+
+When making direct browser-to-APIM calls, you may encounter CORS (Cross-Origin Resource Sharing) issues. The application provides two ways to handle this:
+
+1. **Browser-side with `mode: 'no-cors'`**: This approach sends the request directly from the browser but won't be able to read the response details due to browser security.
+
+2. **Server-side proxy**: The application includes a server-side proxy endpoint that makes the APIM call from the Node.js server, avoiding CORS issues altogether.
+
+### APIM Configuration
+
+Configure your APIM settings in the UI:
+
+- **APIM Host**: The hostname of your APIM instance (e.g., `myapim.azure-api.net`)
+- **APIM Endpoint**: The API endpoint path (e.g., `/api/data`)
+- **Subscription Key**: Your APIM subscription key for authentication
+- **HTTP Method**: Select the appropriate HTTP method for your API call
+- **Use Server Proxy**: Toggle between direct browser requests and server-side proxy
+
+### Server Proxy Implementation
+
+The Node.js server includes a proxy endpoint at `/api/proxy` that forwards requests to APIM, adding the necessary headers and handling the response.
+
+```javascript
+// Example server proxy request
+const response = await fetch('/api/proxy', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    apimHost: 'myapim.azure-api.net',
+    apimEndpoint: '/api/data',
+    method: 'GET',
+    subscriptionKey: 'your-subscription-key',
+    token: 'oauth-token-from-salesforce'
+  })
+});
+```

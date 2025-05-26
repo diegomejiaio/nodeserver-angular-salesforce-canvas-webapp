@@ -42,7 +42,7 @@ export class AppComponent implements OnInit {
   /** Controls the visibility of the top toast from ng-lightning */
   showTopToast = false;
   /** API endpoint for testing */
-  apiEndpoint = '/services/data/v58.0/sobjects/';
+  apiEndpoint = '/services/data/v52.0/sobjects/Opportunity/';
   /** API response */
   apiResponse: any = null;
   /** Loading state for API call */
@@ -51,6 +51,74 @@ export class AppComponent implements OnInit {
   inputError: string | null = null;
   /** Target origin for API calls */
   targetOrigin: string | null = null;
+
+  // APIM Configuration
+  /** APIM host for API calls */
+  apimHost = 'fs-canvas-webapp-apim-001.azure-api.net';
+  /** APIM endpoint for testing */
+  apimEndpoint = '/test/ping';
+  /** APIM subscription key */
+  apimSubscriptionKey = 'd14a60d9e5154bad8857723f5923b660';
+  /** HTTP method for the APIM call */
+  apimHttpMethod = 'GET';
+  /** Available HTTP methods for APIM calls */
+  apimHttpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
+  /** APIM API response */
+  apimResponse: any = null;
+  /** Loading state for APIM API call */
+  isApimLoading = false;
+  /** APIM input validation error message */
+  apimInputError: string | null = null;
+  /** Whether to use server-side proxy for APIM calls */
+  useServerProxy = true;
+  /** Whether to use server-side proxy for Salesforce calls */
+  useSalesforceProxy = false;
+
+  /**
+   * Handles toggle changes for the Salesforce proxy
+   * Triggered when the user clicks the toggle button
+   */
+  toggleSalesforceProxy() {
+    // Add an immediate visual response
+    const checkbox = document.getElementById('salesforce-proxy') as HTMLInputElement;
+    if (checkbox) {
+      // Add a brief highlight effect to the toggle
+      checkbox.classList.add('toggle-clicked');
+      setTimeout(() => checkbox.classList.remove('toggle-clicked'), 300);
+    }
+    
+    // Force the value to update in the next change detection cycle
+    setTimeout(() => {
+      console.log(`Salesforce proxy ${this.useSalesforceProxy ? 'enabled' : 'disabled'}`);
+      // Clear any previous response when changing proxy mode
+      if (this.apiResponse) {
+        this.apiResponse = null;
+      }
+    }, 0);
+  }
+
+  /**
+   * Handles toggle changes for the APIM proxy
+   * Triggered when the user clicks the toggle button
+   */
+  toggleServerProxy() {
+    // Add an immediate visual response
+    const checkbox = document.getElementById('server-proxy') as HTMLInputElement;
+    if (checkbox) {
+      // Add a brief highlight effect to the toggle
+      checkbox.classList.add('toggle-clicked');
+      setTimeout(() => checkbox.classList.remove('toggle-clicked'), 300);
+    }
+    
+    // Force the value to update in the next change detection cycle
+    setTimeout(() => {
+      console.log(`APIM proxy ${this.useServerProxy ? 'enabled' : 'disabled'}`);
+      // Clear any previous response when changing proxy mode
+      if (this.apimResponse) {
+        this.apimResponse = null;
+      }
+    }, 0);
+  }
 
   /**
    * Handles the close event from the ngl-toast component
@@ -65,6 +133,7 @@ export class AppComponent implements OnInit {
     // Check for globally injected Salesforce Canvas data
     if ((window as any).salesforceEnvelope) {
       this.envelope = (window as any).salesforceEnvelope;
+      this.targetOrigin = this.envelope.client.targetOrigin.replace('my.salesforce.com', 'lightning.force.com');
       this.showToast = true;
       // Also show the ng-lightning toast
       this.showTopToast = true;
@@ -166,7 +235,7 @@ export class AppComponent implements OnInit {
           } 
         } 
       };
-      const targetOrigin = this.envelope.client.targetOrigin.replace('my.salesforce.com', 'lightning.force.com');
+      this.targetOrigin = this.envelope.client.targetOrigin.replace('my.salesforce.com', 'lightning.force.com');
       // Show toast after a delay to simulate loading
       setTimeout(() => {
         this.showToast = true;
@@ -206,6 +275,25 @@ export class AppComponent implements OnInit {
   }
 
   /**
+   * Validates the APIM endpoint before making an API call
+   * @returns Whether the APIM endpoint is valid
+   */
+  validateApimEndpoint(): boolean {
+    if (!this.apimEndpoint) {
+      this.apimInputError = 'APIM endpoint is required';
+      return false;
+    }
+    
+    if (!this.apimEndpoint.startsWith('/')) {
+      this.apimInputError = 'APIM endpoint must start with /';
+      return false;
+    }
+    
+    this.apimInputError = null;
+    return true;
+  }
+
+  /**
    * Makes an API call to the Salesforce REST API
    */
   async testApiCall() {
@@ -218,32 +306,421 @@ export class AppComponent implements OnInit {
       return;
     }
 
+    // Check if we're using test data
+    if (this.isUsingTestData()) {
+      const proceed = confirm(`⚠️ WARNING: You're using test data with a fake OAuth token.
+
+This API call will fail because the token is not valid for Salesforce.
+
+To test real Salesforce API calls:
+1. Deploy this application to a server
+2. Configure it as a Salesforce Canvas app
+3. Access it from within Salesforce
+
+Do you want to proceed anyway to see the error response?`);
+      
+      if (!proceed) {
+        return;
+      }
+    }
+
     this.isLoading = true;
     this.apiResponse = null;
+    
+    // Log the proxy mode being used
+    console.log(`Making Salesforce API call with ${this.useSalesforceProxy ? 'SERVER PROXY' : 'DIRECT BROWSER CALL'}`);
 
     try {
-      const url = `${this.targetOrigin}${this.apiEndpoint}`;
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.envelope.client.oauthToken}`,
-          'Content-Type': 'application/json'
+      // Ensure the token is properly trimmed
+      const cleanToken = this.envelope.client.oauthToken.trim();
+      
+      if (this.useSalesforceProxy) {
+        // Use server-side proxy for Salesforce calls
+        const lightningDomain = this.envelope.client.targetOrigin.replace('my.salesforce.com', 'lightning.force.com');
+        const url = `${lightningDomain}${this.apiEndpoint}`;
+        
+        console.log('Using Salesforce proxy for API call');
+        console.log('OAuth Token:', cleanToken.substring(0, 20) + '...');
+        console.log('Target URL:', url);
+        
+        const proxyResponse = await fetch('/api/salesforce-proxy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            url: url,
+            method: 'GET',
+            token: cleanToken,
+            headers: {
+              // Set Origin to the same domain as the API call, matching the working request.http pattern
+              'Origin': lightningDomain
+            }
+          })
+        });
+        
+        const data = await proxyResponse.json();
+        console.log('Salesforce proxy response:', data);
+        
+        // Enhanced response handling
+        let finalData = data;
+        
+        // Check for session expired or invalid patterns in the response
+        const sessionErrorPatterns = [
+          // Check in data array
+          Array.isArray(data.data) && data.data.some((item: { errorCode: string; message: string | string[]; }) => 
+            item.errorCode === 'INVALID_SESSION_ID' || 
+            item.message?.includes('Session expired or invalid')),
+          // Check in originalError array
+          Array.isArray(data.originalError) && data.originalError.some((item: { errorCode: string; message: string | string[]; }) => 
+            item.errorCode === 'INVALID_SESSION_ID' || 
+            item.message?.includes('Session expired or invalid')),
+          // Check in direct data properties
+          data.data?.[0]?.errorCode === 'INVALID_SESSION_ID',
+          data.data?.[0]?.message?.includes('Session expired or invalid'),
+          // Check JSON string for common patterns
+          JSON.stringify(data).includes('INVALID_SESSION_ID') || 
+          JSON.stringify(data).includes('Session expired or invalid')
+        ];
+        
+        // Detect if any session error patterns match
+        const hasSessionError = sessionErrorPatterns.some(pattern => pattern);
+        
+        // Case 1: Session invalid - but the token might be valid and Salesforce might have issues
+        if (hasSessionError) {
+          console.log('Session invalid detected in response');
+          
+          // Extract error details from response for better debugging
+          const errorDetails = (data.data?.length > 0) ? data.data : 
+                              (data.originalError?.length > 0) ? data.originalError : data;
+          
+          // Update UI with diagnostic info and user-friendly message
+          finalData = {
+            error: 'Salesforce API authentication issue',
+            message: 'Your session may need to be refreshed in Salesforce.',
+            action: 'try_again',
+            actionMessage: 'Please try again or refresh the page if the issue persists.',
+            salesforceError: errorDetails,
+            tokenInfo: {
+              length: this.envelope.client.oauthToken.length,
+              prefix: this.envelope.client.oauthToken.substring(0, 10) + '...'
+            },
+            originalResponse: data
+          };
+          
+          // If running in Salesforce, you could trigger a redirect to login
+          if (window.parent && window.parent !== window && !this.isUsingTestData()) {
+            console.log('Running in Salesforce iframe - could redirect to re-auth if needed');
+            // For safety, we won't auto-redirect, just inform the user
+          }
+        } 
+        // Case 2: Development mode with test data
+        else if (proxyResponse.status === 401 && this.isUsingTestData()) {
+          finalData = {
+            error: 'Authentication failed (expected in development mode)',
+            message: 'The fake OAuth token cannot authenticate with real Salesforce APIs. This is normal when running in development mode.',
+            salesforceError: data.error || data.data,
+            developerNote: 'To test with real data, deploy this app as a Salesforce Canvas app and access it from within Salesforce.',
+            testDataMode: true
+          };
         }
-      });
+        // Case 3: Unexpected error in production
+        else if (proxyResponse.status === 401) {
+          finalData = {
+            error: 'Authentication failed with Salesforce API',
+            message: 'Failed to authenticate with the Salesforce API.',
+            details: 'Your session may have expired or the OAuth token is invalid.',
+            action: 'refresh',
+            salesforceError: data.data || data.error,
+            tokenLength: this.envelope.client.oauthToken.length,
+            tokenFirstChars: this.envelope.client.oauthToken.substring(0, 10) + '...'
+          };
+        }
+        
+        this.apiResponse = {
+          status: proxyResponse.status,
+          statusText: proxyResponse.statusText,
+          data: finalData,
+          proxyUsed: true
+        };
+      } else {
+        // Direct browser-to-Salesforce call
+        const lightningDomain = this.envelope.client.targetOrigin.replace('my.salesforce.com', 'lightning.force.com');
+        const url = `${lightningDomain}${this.apiEndpoint}`;
+        
+        console.log('Making direct Salesforce API call to:', url);
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${cleanToken}`,
+            'Content-Type': 'application/json',
+            'Origin': this.envelope.context.application.canvasUrl 
+          }
+        });
 
-      const data = await response.json();
-      this.apiResponse = {
-        status: response.status,
-        statusText: response.statusText,
-        data: data
-      };
+        const data = await response.json();
+        
+        // Enhanced response handling for development mode
+        let finalData = data;
+        if (!response.ok && this.isUsingTestData()) {
+          finalData = {
+            error: 'API call failed (expected in development mode)',
+            message: 'The fake OAuth token cannot authenticate with real Salesforce APIs. This is normal when running in development mode.',
+            salesforceError: data,
+            httpStatus: response.status,
+            developerNote: 'To test with real data, deploy this app as a Salesforce Canvas app and access it from within Salesforce.',
+            testDataMode: true
+          };
+        }
+        
+        this.apiResponse = {
+          status: response.status,
+          statusText: response.statusText,
+          data: finalData,
+          directBrowserRequest: true
+        };
+      }
     } catch (error) {
-      this.apiResponse = {
-        error: error,
-        message: 'Failed to make API call'
+      console.error('Salesforce API call error:', error);
+      
+      let errorResponse = {
+        error: error instanceof Error ? error.message : String(error),
+        message: 'Failed to make Salesforce API call',
+        stack: error instanceof Error ? error.stack : undefined
       };
+      
+      // Add development mode context if using test data
+      if (this.isUsingTestData()) {
+        errorResponse = {
+          ...errorResponse,
+        };
+      }
+      
+      this.apiResponse = errorResponse;
     } finally {
       this.isLoading = false;
     }
+  }
+
+  /**
+   * Makes an API call to the APIM endpoint
+   */
+  async testApimCall() {
+    if (!this.envelope?.client?.oauthToken) {
+      alert('No OAuth token available for APIM call');
+      return;
+    }
+    
+    if (!this.validateApimEndpoint()) {
+      return;
+    }
+
+    // Check if we're using test data
+    if (this.isUsingTestData()) {
+      const proceed = confirm(`⚠️ WARNING: You're using test data with a fake OAuth token.
+
+This APIM call may fail if your APIM endpoint validates the token against Salesforce.
+
+To test real APIM calls with valid tokens:
+1. Deploy this application to a server
+2. Configure it as a Salesforce Canvas app
+3. Access it from within Salesforce
+
+Do you want to proceed anyway?`);
+      
+      if (!proceed) {
+        return;
+      }
+    }
+
+    this.isApimLoading = true;
+    this.apimResponse = null;
+
+    // Log diagnostic information before making the call
+    console.log('APIM Call Diagnostics:', this.generateDiagnosticReport());
+
+    try {
+      // Ensure the token is properly trimmed
+      const cleanToken = this.envelope.client.oauthToken.trim();
+      
+      let url: string;
+      let response: Response;
+      
+      if (this.useServerProxy) {
+        // Call our Node.js server proxy endpoint which will make the APIM call for us
+        // This avoids CORS issues as the server-to-server communication isn't subject to browser CORS
+        url = `/api/proxy`;
+        console.log('Using server proxy for APIM call:', url);
+        
+        response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            apimHost: this.apimHost,
+            apimEndpoint: this.apimEndpoint,
+            method: this.apimHttpMethod,
+            subscriptionKey: this.apimSubscriptionKey,
+            token: cleanToken
+          })
+        });
+        
+        // Process the response from our server proxy
+        const data = await response.json();
+        console.log('Server proxy response:', data);
+        
+        this.apimResponse = {
+          status: response.status,
+          statusText: response.statusText,
+          data: data,
+          proxyUsed: true
+        };
+      } else {
+        // Direct browser-to-APIM call (will have CORS issues)
+        url = `https://${this.apimHost}${this.apimEndpoint}`;
+        
+        console.log('Making direct APIM API call to:', url);
+        console.log('Using HTTP method:', this.apimHttpMethod);
+        console.log('Using OAuth token:', cleanToken.substring(0, 10) + '...');
+        
+        // Use no-cors mode to prevent CORS preflight (OPTIONS) request
+        response = await fetch(url, {
+          method: this.apimHttpMethod,
+          mode: 'no-cors', // This prevents the preflight OPTIONS request
+          credentials: 'omit', // Don't send cookies
+          headers: {
+            'Ocp-Apim-Subscription-Key': this.apimSubscriptionKey,
+            'Authorization': `Bearer ${cleanToken}`,
+            'Accept': '*/*'
+          }
+        });
+
+        let data;
+        let status = response.status;
+        let statusText = response.statusText;
+        
+        // In 'no-cors' mode, we get an "opaque" response with limited information
+        if (status === 0) {
+          // This means the request was sent but we can't see the details due to CORS
+          this.apimResponse = {
+            status: 'Request sent',
+            statusText: 'Response is opaque due to CORS policy',
+            data: 'Check the network tab in browser dev tools to see the actual request results',
+            directBrowserRequest: true,
+            timestamp: new Date().toISOString(),
+            diagnostics: {
+              url: url,
+              method: this.apimHttpMethod,
+              mode: 'no-cors'
+            }
+          };
+          console.log('Opaque response received due to CORS policy');
+        } else {
+          // If we can read the response, process it normally
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+          } else {
+            data = await response.text();
+          }
+          
+          this.apimResponse = {
+            status: status,
+            statusText: statusText,
+            data: data,
+            directBrowserRequest: true
+          };
+          console.log('Direct browser APIM response:', this.apimResponse);
+        }
+      }
+    } catch (error) {
+      console.error('APIM API call error:', error);
+      this.apimResponse = {
+        error: error instanceof Error ? error.message : String(error),
+        message: 'Failed to make APIM API call',
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
+      };
+    } finally {
+      this.isApimLoading = false;
+    }
+  }
+
+  /**
+   * Switches to server proxy mode and retries the APIM call
+   */
+  switchToServerProxy() {
+    this.useServerProxy = true;
+    this.testApimCall();
+  }
+
+  /**
+   * Opens a dialog with CORS debugging information
+   */
+  openCorsDebugInfo() {
+    // For now, just log to console and show an alert
+    console.log('CORS debugging information');
+    alert(`CORS Troubleshooting Tips:
+    
+1. Check if the APIM endpoint supports CORS
+2. Verify that your APIM has the following headers enabled:
+   - Access-Control-Allow-Origin: * (or your specific origin)
+   - Access-Control-Allow-Methods: GET, POST, OPTIONS, etc.
+   - Access-Control-Allow-Headers: Authorization, Content-Type, etc.
+
+3. Consider using the server proxy option which avoids CORS issues
+4. Check browser console and network tab for detailed error messages`);
+  }
+
+  /**
+   * Generates a diagnostic report for APIM calls
+   * @returns A formatted string with diagnostic information
+   */
+  generateDiagnosticReport(): string {
+    const report = {
+      timestamp: new Date().toISOString(),
+      apimConfig: {
+        host: this.apimHost,
+        endpoint: this.apimEndpoint,
+        method: this.apimHttpMethod,
+        usingProxy: this.useServerProxy
+      },
+      salesforceContext: {
+        targetOrigin: this.targetOrigin,
+        restUrl: this.envelope?.context?.links?.restUrl,
+        hasOAuthToken: !!this.envelope?.client?.oauthToken
+      },
+      browserInfo: {
+        userAgent: navigator.userAgent,
+        language: navigator.language
+      }
+    };
+    
+    return JSON.stringify(report, null, 2);
+  }
+
+  /**
+   * Logs diagnostic report to console
+   */
+  logDiagnosticReport() {
+    console.log('APIM Diagnostic Report:', this.generateDiagnosticReport());
+  }
+
+  /**
+   * Gets the user agent string from the browser
+   * @returns The user agent string
+   */
+  getUserAgent(): string {
+    return navigator.userAgent;
+  }
+
+  /**
+   * Checks if we're using test data (development mode)
+   * @returns True if using test data, false if using real Salesforce Canvas data
+   */
+  isUsingTestData(): boolean {
+    return this.envelope?.client?.oauthToken === 'dasdasdasdassoyuntokenadsasdasda';
   }
 }

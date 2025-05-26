@@ -1,0 +1,4 @@
+@access_token = 00DgL000003KIqH!AQEAQLxUtk5QDRUrkuXheOKfHbEHIMnQzREG4xrObTpxx3awOk85mces44Cryv.TlRgwh5cVUk7JZJ9Ui3nPviQaMTqRj0Xr
+GET https://orgfarm-1ee7d40ed5-dev-ed.develop.lightning.force.com/services/data/v52.0/sobjects/Opportunity/
+Authorization: Bearer {{access_token}}
+Accept: application/json
