@@ -334,13 +334,20 @@ Do you want to proceed anyway to see the error response?`);
       // Ensure the token is properly trimmed
       const cleanToken = this.envelope.client.oauthToken.trim();
       
+      // Try to use session ID if available, otherwise use OAuth token
+      const authToken = (this.envelope as any).sessionId || cleanToken;
+      const tokenType = (this.envelope as any).sessionId ? 'Session ID' : 'OAuth Token';
+      
+      console.log(`Using ${tokenType} for authentication`);
+      
       if (this.useSalesforceProxy) {
         // Use server-side proxy for Salesforce calls
-        const lightningDomain = this.envelope.client.targetOrigin.replace('my.salesforce.com', 'lightning.force.com');
-        const url = `${lightningDomain}${this.apiEndpoint}`;
+        const salesforceDomain = this.envelope.client.targetOrigin; // Use my.salesforce.com domain for API calls
+        const url = `${salesforceDomain}${this.apiEndpoint}`;
         
         console.log('Using Salesforce proxy for API call');
         console.log('OAuth Token:', cleanToken.substring(0, 20) + '...');
+        console.log('Auth Token:', authToken.substring(0, 20) + '...');
         console.log('Target URL:', url);
         
         const proxyResponse = await fetch('/api/salesforce-proxy', {
@@ -351,10 +358,10 @@ Do you want to proceed anyway to see the error response?`);
           body: JSON.stringify({
             url: url,
             method: 'GET',
-            token: cleanToken,
+            token: authToken,
             headers: {
-              // Set Origin to the same domain as the API call, matching the working request.http pattern
-              'Origin': lightningDomain
+              // For my.salesforce.com API calls, use the corresponding lightning domain for Origin
+              'Origin': this.envelope.client.targetOrigin.replace('my.salesforce.com', 'lightning.force.com')
             }
           })
         });
@@ -445,17 +452,17 @@ Do you want to proceed anyway to see the error response?`);
         };
       } else {
         // Direct browser-to-Salesforce call
-        const lightningDomain = this.envelope.client.targetOrigin.replace('my.salesforce.com', 'lightning.force.com');
-        const url = `${lightningDomain}${this.apiEndpoint}`;
+        const salesforceDomain = this.envelope.client.targetOrigin; // Use my.salesforce.com domain for API calls
+        const url = `${salesforceDomain}${this.apiEndpoint}`;
         
         console.log('Making direct Salesforce API call to:', url);
         
         const response = await fetch(url, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${cleanToken}`,
+            'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json',
-            'Origin': this.envelope.context.application.canvasUrl 
+            'Origin': this.envelope.client.targetOrigin.replace('my.salesforce.com', 'lightning.force.com')
           }
         });
 

@@ -129,6 +129,17 @@ app.post("/", async function (req, res) {
           "</body>",
           `<script>
             window.salesforceEnvelope = ${JSON.stringify(envelope)};
+            
+            // Try to get session ID from Visualforce if available
+            if (typeof window.parent !== 'undefined' && window.parent.Sfdc) {
+              try {
+                // This only works if we're in a Visualforce context
+                window.salesforceEnvelope.sessionId = window.parent.Sfdc.canvas.oauth.sessionId;
+                console.log('Session ID extracted from Visualforce context');
+              } catch (e) {
+                console.log('Could not extract session ID from Visualforce context:', e.message);
+              }
+            }
           </script></body>`
         );
         res.send(injectedHtml);
@@ -226,14 +237,20 @@ app.post("/api/salesforce-proxy", async (req, res) => {
     console.log(`Proxying ${method} request to Salesforce: ${url}`);
     console.log(`Token length: ${normalizedToken.length}, starts with: ${normalizedToken.substring(0, 5)}...`);
     
-    // Build the headers for the Salesforce request
+    // Build the headers for the Salesforce request - keep minimal to match working request.http
     const headers = {
       'Authorization': `Bearer ${normalizedToken}`,
       'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      // Don't set Origin automatically, let it come from additionalHeaders if needed
-      ...additionalHeaders // Allow additional headers to be passed
+      // Only add additional headers if they're explicitly provided
+      ...(additionalHeaders || {})
     };
+    
+    // Remove Content-Type for GET requests (it's not needed and might cause issues)
+    if (method.toLowerCase() === 'get') {
+      delete headers['Content-Type'];
+    } else {
+      headers['Content-Type'] = 'application/json';
+    }
     
     // Remove null/undefined values from headers
     Object.keys(headers).forEach(key => {
