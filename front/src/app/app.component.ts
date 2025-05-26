@@ -49,6 +49,8 @@ export class AppComponent implements OnInit {
   isLoading = false;
   /** Input validation error message */
   inputError: string | null = null;
+  /** Target origin for API calls */
+  targetOrigin: string | null = null;
 
   /**
    * Handles the close event from the ngl-toast component
@@ -164,7 +166,7 @@ export class AppComponent implements OnInit {
           } 
         } 
       };
-
+      const targetOrigin = this.envelope.client.targetOrigin.replace('my.salesforce.com', 'lightning.force.com');
       // Show toast after a delay to simulate loading
       setTimeout(() => {
         this.showToast = true;
@@ -220,7 +222,7 @@ export class AppComponent implements OnInit {
     this.apiResponse = null;
 
     try {
-      const url = `${this.envelope.client.targetOrigin}${this.apiEndpoint}`;
+      const url = `${this.targetOrigin}${this.apiEndpoint}`;
       const response = await fetch(url, {
         method: 'GET',
         headers: {
