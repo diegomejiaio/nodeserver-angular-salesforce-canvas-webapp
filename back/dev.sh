@@ -8,8 +8,5 @@ echo "Starting in development mode..."
 echo "PORT=$PORT"
 echo "NODE_ENV=$NODE_ENV"
 
-# Check if Angular dist files exist
-./check-angular-build.sh
-
 # Start the application with nodemon for auto-restart
 exec nodemon app.js
