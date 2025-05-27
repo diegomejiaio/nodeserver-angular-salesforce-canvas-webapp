@@ -1,11 +1,11 @@
 <mxfile host="65bd71144e">
     <diagram id="ee_gDtnK6uAo2xznAAh-" name="Page-1">
-        <mxGraphModel dx="1392" dy="412" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+        <mxGraphModel dx="1084" dy="438" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
                 <mxCell id="11" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;arcSize=3;fontFamily=Tahoma;" parent="1" vertex="1">
-                    <mxGeometry x="250" y="30" width="180" height="210" as="geometry"/>
+                    <mxGeometry x="250" y="30" width="180" height="270" as="geometry"/>
                 </mxCell>
                 <mxCell id="4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;arcSize=3;fontFamily=Tahoma;" parent="1" vertex="1">
                     <mxGeometry x="30" y="30" width="170" height="270" as="geometry"/>
@@ -118,9 +118,6 @@
                 </mxCell>
                 <mxCell id="19" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/preview/Static_Apps.svg;fontFamily=Tahoma;" parent="1" vertex="1">
                     <mxGeometry x="281.14" y="190" width="38.12" height="30.5" as="geometry"/>
-                </mxCell>
-                <mxCell id="42" value="Vigencia&lt;div&gt;Refresh&lt;/div&gt;&lt;div&gt;SDK&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
-                    <mxGeometry x="270" y="270" width="70" height="60" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>

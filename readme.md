@@ -18,6 +18,14 @@ A full-stack application that demonstrates Salesforce Canvas integration using N
 /
 ├── back/              # Backend source (Node.js/Express)
 │   ├── app.js        # Main server file
+│   ├── README.md     # 📖 Backend Documentation
+│   ├── src/          # SOLID architecture implementation
+│   │   ├── config/   # Configuration management
+│   │   ├── services/ # Business logic services
+│   │   ├── controllers/ # HTTP request handlers
+│   │   ├── middleware/  # Express middleware
+│   │   ├── routes/   # Route definitions
+│   │   └── container/ # Dependency injection
 │   └── views/        # View templates
 ├── front/            # Frontend source (Angular)
 │   ├── src/         # Angular source code
@@ -29,23 +37,104 @@ A full-stack application that demonstrates Salesforce Canvas integration using N
 └── README.md       # Documentation
 ```
 
+## Backend Architecture
+
+The Node.js backend follows SOLID principles with a modular architecture. For detailed backend documentation, see **[Backend README](./back/README.md)**.
+
+```mermaid
+graph TB
+    subgraph "Request Flow"
+        A[Salesforce Canvas] --> B[Express Server]
+        C[Angular Frontend] --> B
+    end
+    
+    subgraph "Backend Architecture"
+        B --> D[MiddlewareConfig]
+        D --> E[RouteRegistry]
+        E --> F{Route Type}
+        
+        F -->|Canvas Request| G[CanvasController]
+        F -->|API Proxy| H[ProxyController]
+        F -->|Static Files| I[AngularStaticService]
+        
+        G --> J[CanvasAuthService]
+        H --> K[ApimProxyService]
+        H --> L[SalesforceProxyService]
+        
+        J --> M[Logger]
+        K --> M
+        L --> M
+        
+        subgraph "DI Container"
+            N[DIContainer] --> G
+            N --> H
+            N --> J
+            N --> K
+            N --> L
+            N --> O[AppConfig]
+        end
+    end
+    
+    subgraph "External Services"
+        P[Salesforce API]
+        Q[Azure APIM]
+        R[Azure AD]
+    end
+    
+    L --> P
+    K --> Q
+    J --> R
+```
+
 ## Sequence Flow
 
 ```mermaid
 sequenceDiagram
-    participant SF as Salesforce
-    participant Node as Node.js Server
+    participant SF as Salesforce Canvas
+    participant MW as MiddlewareConfig
+    participant RR as RouteRegistry
+    participant CC as CanvasController
+    participant CAS as CanvasAuthService
+    participant DI as DIContainer
     participant Angular as Angular App
     participant User as User
+    participant K as KYC Services
+    participant L as Salesforce API
 
-    SF->>Node: 1. POST / with signed_request
-    Note over Node: 2. Validates HMAC signature
-    Node->>Node: 3. Decodes base64 envelope
-    Node->>Angular: 4. Injects envelope as window.salesforceEnvelope
-    Angular->>Angular: 5. Initializes with envelope data
-    Angular->>User: 6. Displays user context & organization info
-    User->>Angular: 7. Interacts with UI
-    Angular->>SF: 8. Displays within Salesforce Canvas iframe
+    SF->>MW: 1. POST / with signed_request
+    MW->>RR: 2. Route to canvas endpoint
+    RR->>DI: 3. Resolve CanvasController
+    DI->>CC: 4. Inject dependencies
+    CC->>DI: 5. Get CanvasAuthService
+    DI->>CAS: 6. Return service instance
+    CC->>CAS: 7. Validate signed_request
+    Note over CAS: HMAC SHA-256 validation
+    CAS->>CC: 8. Return decoded envelope
+    CC->>Angular: 9. Render with envelope data
+    Note over Angular: window.salesforceEnvelope injected
+    Angular->>Angular: 10. Initialize with user context
+    Angular->>User: 11. Display UI with SF data
+    User->>Angular: 12. Interact with application
+    
+    Note over SF,User: APIM Proxy Flow
+    User->>Angular: 13. Request APIM Data
+    Angular->>RR: 14. POST /api/proxy
+    RR->>DI: 15. Resolve ProxyController
+    DI->>CC: 16. Inject ApimProxyService
+    CC->>K: 17. Forward to Azure APIM
+    K->>Angular: 18. Return API response
+    Angular->>User: 19. Update UI with data
+
+    Note over SF,User: Salesforce Proxy Flow
+    User->>Angular: 20. Request Salesforce Data
+    Angular->>RR: 21. POST /api/salesforce
+    RR->>DI: 22. Resolve ProxyController
+    DI->>CC: 23. Inject SalesforceProxyService
+    CC->>L: 24. Forward to Salesforce API
+    L->>SF: 25. Make authenticated API call
+    SF->>L: 26. Return Salesforce data
+    L->>Angular: 27. Return API response
+    Angular->>User: 28. Update UI with SF data
 ```
 
 ## Prerequisites
@@ -89,46 +178,8 @@ sequenceDiagram
    # Choose 'l' for local development mode
    ```
 
-## Development Options
-
-### Option 1: Simplified Local Development
-
-This method runs both backend and frontend from a single command:
-
-```bash
-# From project root
-./localrun.sh
-# Choose 'l' for local development
-```
-
 The application will be available at http://localhost:3000
 
-### Option 2: Docker Container (Production-like)
-
-To run the application in a Docker container (simulating production):
-
-```bash
-# From project root
-./localrun.sh
-# Choose 'd' for Docker mode
-```
-
-The application will be available at http://localhost:3000
-
-### Option 3: Separate Frontend and Backend (Advanced Development)
-
-Run backend and frontend separately for more granular control:
-
-```bash
-# Backend
-cd back
-npm run dev  # Runs on port 3000
-
-# Frontend (in another terminal)
-cd front
-ng serve     # Runs on port 4200
-```
-- Backend: http://localhost:3000
 
 ## Docker Deployment
 
@@ -189,54 +240,3 @@ MIT
 ## Support
 
 For issues and feature requests, please use the GitHub issue tracker.
-
-## Azure API Management (APIM) Integration
-
-The application includes functionality to interact with Azure API Management (APIM) endpoints using the authenticated Salesforce user's bearer token. 
-
-### APIM Features
-
-- Make authenticated API calls to Azure API Management endpoints
-- Uses the Salesforce OAuth token for authentication
-- Configurable APIM host, endpoint, and subscription key
-- Support for multiple HTTP methods (GET, POST, PUT, DELETE, etc.)
-- Server-side proxy option to avoid CORS issues
-
-### CORS Handling
-
-When making direct browser-to-APIM calls, you may encounter CORS (Cross-Origin Resource Sharing) issues. The application provides two ways to handle this:
-
-1. **Browser-side with `mode: 'no-cors'`**: This approach sends the request directly from the browser but won't be able to read the response details due to browser security.
-
-2. **Server-side proxy**: The application includes a server-side proxy endpoint that makes the APIM call from the Node.js server, avoiding CORS issues altogether.
-
-### APIM Configuration
-
-Configure your APIM settings in the UI:
-
-- **APIM Host**: The hostname of your APIM instance (e.g., `myapim.azure-api.net`)
-- **APIM Endpoint**: The API endpoint path (e.g., `/api/data`)
-- **Subscription Key**: Your APIM subscription key for authentication
-- **HTTP Method**: Select the appropriate HTTP method for your API call
-- **Use Server Proxy**: Toggle between direct browser requests and server-side proxy
-
-### Server Proxy Implementation
-
-The Node.js server includes a proxy endpoint at `/api/proxy` that forwards requests to APIM, adding the necessary headers and handling the response.
-
-```javascript
-// Example server proxy request
-const response = await fetch('/api/proxy', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    apimHost: 'myapim.azure-api.net',
-    apimEndpoint: '/api/data',
-    method: 'GET',
-    subscriptionKey: 'your-subscription-key',
-    token: 'oauth-token-from-salesforce'
-  })
-});
-```
